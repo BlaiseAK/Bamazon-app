@@ -22,7 +22,10 @@ connection.connect(function(err) {
 function customerOptions() {
     inquirer.prompt(
         {
-            
+            name: "options",
+            message: "What would you like to do today?",
+            input: "list",
+            choices: ["Buy an item", "Sell an item"]
         }
     )
 }
