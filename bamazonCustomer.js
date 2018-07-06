@@ -27,7 +27,7 @@ function customerOptions() {
             name: "options",
             message: "What would you like to do today?",
             type: "list",
-            choices: ["Buy an item", "Sell an item"]
+            choices: ["Buy an item", "Sell an item", "Manager Options"]
         }
     ).then(function(res){
         var choice = res.options;
@@ -46,15 +46,15 @@ function showItemsToBuy() {
 
         console.log(res);
         selectItemIdToBuy();
-        connection.end();
+        // connection.end();
     })
 }
 
 function selectItemIdToBuy() {
-    inquirer.prompt(
+    inquirer.prompt([
         {
             name: "idToBuy",
-            message: "What is the items id that you wish to buy?",
+            message: "What is the item's id that you wish to buy?",
             validate: function(value) {
                 if (isNaN(value) === false && parseInt(value) > 0 && parseInt(value) <= 100) {
                     return true;
@@ -71,6 +71,14 @@ function selectItemIdToBuy() {
                 }
                 return false;
             }
-        }
-    )
+        }]
+    ).then(function(res){
+        var item = res.idToBuy;
+        var qty = res.qtyToBuy;
+        itemsSold(item, qty)
+    })
+}
+
+function itemsSold(item, qty) {
+    connection.query("UPDATE ? WHERE ?")
 }
