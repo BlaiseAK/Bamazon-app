@@ -74,11 +74,26 @@ function selectItemIdToBuy() {
         }]
     ).then(function(res){
         var item = res.idToBuy;
-        var qty = res.qtyToBuy;
-        itemsSold(item, qty)
+        var qtyToBuy = res.qtyToBuy;
+        itemsSold(item, qtyToBuy)
+    }).catch(function(err) {
+        console.log(err)
     })
 }
 
-function itemsSold(item, qty) {
-    connection.query("UPDATE ? WHERE ?")
+function itemsSold(item, qtyToBuy) {
+    connection.query("SELECT * FROM products WHERE ID = ?", item, function(err, res) {
+        if(err) throw err;
+        var qtyOnHand = res[0].stock_quantity;
+        var item = res[0].id
+        var newQtyOnHand = qtyOnHand - qtyToBuy;
+        updateItemQtyOnHand(item, newQtyOnHand)
+    })
+    
 }
+
+function updateItemQtyOnHand(item, newQtyOnHand) {
+    connection.query("UPDATE products SET ? WHERE ?", [{stock_quantity: newQtyOnHand}, {id: item}], function(err, res) {
+    console.log("Your order has been processed for "+item+"!");
+    connection.end();
+})}
