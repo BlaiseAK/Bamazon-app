@@ -29,7 +29,7 @@ function customerOptions() {
             name: "options",
             message: "What would you like to do today?",
             type: "list",
-            choices: ["Buy an item", "Sell an item", "Manager Options", "Log out"]
+            choices: ["Buy an item", "Manager Options", "Supervisor Options", "Log out"]
         }
     ).then(function(res){
         var choice = res.options;
@@ -38,16 +38,17 @@ function customerOptions() {
             console.log("============================");
             showItemsToBuy();
         }
-        if (choice === 'Sell an item') {
+        if (choice === 'Manager Options') {
             // Show ask for password and username
             console.log("============================");
             sellerLogin();
         }
-        if (choice === 'Manager Options') {
+        if (choice === 'Supervisor Options') {
             console.log("============================");
             managerOptions();
         }
         if (choice === 'Log out') {
+            // Ends connection to the program
             console.log("============================");
             console.log("Thank you for visiting Bamazon! Please come back again soon!");
             console.log("============================");
@@ -110,12 +111,19 @@ function itemsSold(item, qtyToBuy) {
         var qtyOnHand = res[0].stock_quantity;
         var item = res[0].id
         var productName = res[0].product_name;
+        var departmentName = res[0].department_name;
         var orderQty = qtyToBuy;
         var newQtyOnHand = qtyOnHand - qtyToBuy;
         var orderSales = res[0].price*orderQty;
-        updateItemQtyOnHand(item, productName, orderQty, newQtyOnHand, orderSales)
+        updateItemQtyOnHand(item, productName, orderQty, newQtyOnHand, orderSales);
+        updateProductSales(departmentName, orderSales)
     })
     
+}
+
+// For supervisor to see updated sales information
+function updateProductSales (departmentName, orderSales){
+
 }
 
 // Updates the product table to the new on-hand qty after the user makes their selection
@@ -232,6 +240,7 @@ function lowInventoryItems() {
         if (err) throw err;
         if (res.id === null) {
             console.log(res);
+            console.log("No current items with low stock.")
             console.log("============================");
             sellerOptions();
         }
@@ -279,6 +288,7 @@ function updateStockQty(item, qty) {
         var qtyOnHand = res[0].stock_quantity;
         var item = res[0].id
         var productName = res[0].product_name;
+        var departmentName = res[0].department_name;
         var restock = qty;
         var newQtyOnHand = qtyOnHand + qty;
         stockUpdateComplete(item, productName, restock, newQtyOnHand)
