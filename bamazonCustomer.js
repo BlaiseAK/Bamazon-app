@@ -29,7 +29,7 @@ function customerOptions() {
             name: "options",
             message: "What would you like to do today?",
             type: "list",
-            choices: ["Buy an item", "Manager Options", "Supervisor Options", "Log out"]
+            choices: ["Buy an item", "Manager Options", "Log out"]
         }
     ).then(function(res){
         var choice = res.options;
@@ -43,10 +43,11 @@ function customerOptions() {
             console.log("============================");
             sellerLogin();
         }
-        if (choice === 'Supervisor Options') {
-            console.log("============================");
-            managerOptions();
-        }
+        // Currently commented out because I was unable to get to this portion in time for turning in.
+        // if (choice === 'Supervisor Options') {
+        //     console.log("============================");
+        //     managerOptions();
+        // }
         if (choice === 'Log out') {
             // Ends connection to the program
             console.log("============================");
@@ -111,25 +112,19 @@ function itemsSold(item, qtyToBuy) {
         var qtyOnHand = res[0].stock_quantity;
         var item = res[0].id
         var productName = res[0].product_name;
-        var departmentName = res[0].department_name;
         var orderQty = qtyToBuy;
-        var newQtyOnHand = qtyOnHand - qtyToBuy;
+        var newQtyOnHand = parseInt(qtyOnHand) - parseInt(qtyToBuy);
         var orderSales = res[0].price*orderQty;
-        updateItemQtyOnHand(item, productName, orderQty, newQtyOnHand, orderSales);
-        updateProductSales(departmentName, orderSales)
+        var newProductSales = parseInt(res[0].product_sales)+ parseInt(orderSales);
+        updateItemQtyOnHand(item, productName, orderQty, newQtyOnHand, orderSales, newProductSales);
     })
     
 }
 
-// For supervisor to see updated sales information
-function updateProductSales (departmentName, orderSales){
-
-}
-
 // Updates the product table to the new on-hand qty after the user makes their selection
-function updateItemQtyOnHand(item, productName, orderQty, newQtyOnHand, orderSales) {
+function updateItemQtyOnHand(item, productName, orderQty, newQtyOnHand, orderSales, newProductSales) {
     if(newQtyOnHand > 0) {
-        connection.query("UPDATE products SET ? WHERE ?", [{stock_quantity: newQtyOnHand}, {id: item}], function(err, res) {
+        connection.query("UPDATE products SET ?, ? WHERE ?", [{stock_quantity: newQtyOnHand}, {product_sales: newProductSales}, {id: item}], function(err, res) {
         console.log("Your order has been processed for "+orderQty+" unit(s) of "+item+"-"+productName+"!\n"+"The total for this order is: $"+orderSales);
         // connection.end();
         console.log("============================");
@@ -288,9 +283,8 @@ function updateStockQty(item, qty) {
         var qtyOnHand = res[0].stock_quantity;
         var item = res[0].id
         var productName = res[0].product_name;
-        var departmentName = res[0].department_name;
         var restock = qty;
-        var newQtyOnHand = qtyOnHand + qty;
+        var newQtyOnHand = parseInt(qtyOnHand) + parseInt(qty);
         stockUpdateComplete(item, productName, restock, newQtyOnHand)
     })
 }
@@ -302,4 +296,118 @@ function stockUpdateComplete(item, productName, restock, newQtyOnHand) {
         console.log("============================");
         sellerOptions();
     })  
+}
+
+function addNewProduct() {
+    inquirer.prompt([
+        {
+            name: "productName",
+            message: "What is the name of the new product?",
+            type: "input"
+        },
+        {
+            name: "price",
+            message: "What is the price you would like to establish for this product?",
+            validate: function(value) {
+                if (isNaN(value) === false && parseFloat(value) > 0) {
+                    return true;
+                }
+                return false;
+            }
+        },
+        {
+            name: "stockQty",
+            message: "How many units would you like to add to stock?",
+            validate: function(value) {
+                if (isNaN(value) === false && parseInt(value) > 0) {
+                    return true;
+                }
+                return false;
+            }
+        },
+        {
+            name: "department",
+            message: "What department would you like to place this product in?",
+            type: "input"
+        }
+    ]).then(function(res) {
+        var newProductName = res.productName;
+        var newProductPrice = res.price;
+        var newProductQty = res.stockQty;
+        var newProductDepartment = res.department;
+        connection.query("SELECT * FROM products WHERE ?", {department_name: newProductDepartment}, function(err,res) {
+            if (err) throw err;
+            if (res.id === null) {
+                console.log("============================");
+                console.log("The department '"+ newProductDepartment +"' is not currently in the system. Please establish the department and related costs");
+                console.log("============================");
+                // fire function to create new department in the department table and pass all info to that function
+                createNewDepartment(newProductName, newProductDepartment, newProductPrice, newProductQty);
+                console.log("============================");
+            } else{
+            // fire function to create new product in table
+            console.log("============================");
+            updateNewProductTable(newProductName, newProductDepartment, newProductPrice, newProductQty);
+            console.log("============================");
+            }
+        })
+    }).catch(function(err) {
+        console.log(err);
+    })
+}
+
+function updateNewProductTable(newProductName, newProductDepartment, newProductPrice, newProductQty) {
+    connection.query("INSERT INTO products SET ?, ?, ?, ?",[
+        {
+            product_name: newProductName
+        },
+        {
+            department_name: newProductDepartment
+        },
+        {  
+            price: parseFloat(newProductPrice)
+        },
+        {    
+            stock_quantity: parseInt(newProductQty)
+        }],
+        function(err, res) {
+            console.log(newProductName + " product inserted!\n");
+            sellerOptions();
+        }
+    )
+}
+
+function createNewDepartment(newProductName, newProductDepartment, newProductPrice, newProductQty) {
+    inquirer.prompt({
+        name: "overHeadCosts",
+        message: "What is the established overhead of creating the department "+newProductDepartment+"?",
+        validate: function(value) {
+            if (isNaN(value) === false && parseFloat(value) > 0) {
+                return true;
+            }
+            return false;
+        }
+    }).then(function(res) {
+        var passThroughName = newProductName;
+        var passThroughDepartment = newProductDepartment;
+        var passThroughPrice = newProductPrice;
+        var passThroughQty = newProductQty;
+        var newOverHeadCosts = res.overHeadCosts;
+        // function for updating departments then pass to the new product
+        connection.query("INSERT INTO departments SET ?, ?",[
+            {
+                department_name: passThroughDepartment
+            },
+            {
+                over_head_costs: parseFloat(newOverHeadCosts)
+            }],
+        function(err, res) {
+            console.log("Department inserted!\n");
+            updateNewProductTable(passThroughName, passThroughDepartment, passThroughPrice, passThroughQty);
+        }
+        )
+
+    }).catch(function(err) {
+        console.log(err);
+    })
 }
